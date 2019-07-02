@@ -1,4 +1,6 @@
 import time
+import os
+import os.path as osp
 import functools
 import tensorflow as tf
 
@@ -131,6 +133,7 @@ def learn(
     alpha=0.99,
     gamma=0.99,
     log_interval=100,
+    save_interval=0,
     load_path=None,
     **network_kwargs):
 
@@ -175,6 +178,8 @@ def learn(
     gamma:              float, reward discounting parameter (default: 0.99)
 
     log_interval:       int, specifies how frequently the logs are printed out (default: 100)
+
+    save_interval:      int number of timesteps between saving events
 
     **network_kwargs:   keyword arguments to the policy / network builder. See baselines.common/policies.py/build_policy and arguments to a particular type of network
                         For instance, 'mlp' network architecture has arguments num_hidden and num_layers.
@@ -228,5 +233,12 @@ def learn(
             logger.record_tabular("eprewmean", safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.record_tabular("eplenmean", safemean([epinfo['l'] for epinfo in epinfobuf]))
             logger.dump_tabular()
+        if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
+            checkdir = osp.join(logger.get_dir(), 'checkpoints')
+            os.makedirs(checkdir, exist_ok=True)
+            savepath = osp.join(checkdir, '%.5i'%update)
+            print('Saving to', savepath)
+            model.save(savepath)
+
     return model
 
